@@ -54,3 +54,44 @@ Same input → same FNV-1a hash, byte-for-byte across:
 - **Rust** (cargo-line-tycoon/substrate/rust/)
 - **C99** (cargo-line-tycoon/substrate/c/)
 - **Python** (cargo-line-tycoon/substrate/py/)
+
+## Phase 0 — world-model (`src/world.js`)
+
+The shared game kernel both the toy and the full game run on, added on top of
+`Cell` unchanged (`src/index.js` is not modified by this module):
+
+- **`SeededRNG`** — deterministic PRNG (mulberry32, seeded via `fnv1a64` of the
+  seed string). Same seed ⇒ same draw sequence, on every machine, forever.
+- **`World`** — a booked, append-only tick loop. `world.tick(step)` advances the
+  compressed clock; `world.book(entry)` appends any event to the witness-log;
+  `world.bookLedger({debit, credit, amount, memo})` books a double-entry money
+  movement in integer minor units (identity never floats — a non-integer or
+  negative `amount` throws). `world.stateHash()` hashes the whole run so far.
+- **Game cell factories** — `makeCompanyCell`, `makeShipCell`, `makeRouteCell`,
+  `makePortCell`, `makeMarketCell`. Each returns a normal, content-addressed
+  `Cell` (identical state ⇒ identical address); `EntityStore` (`world.entities`)
+  tracks the *current* cell address per mutable entity id while every prior
+  version stays in `world.cells`, so nothing is ever overwritten in place.
+
+**The law this buys:** replay ≡ live. Feed a fresh `World` booted from the same
+seed the same ordered sequence of actions and you get a byte-identical
+witness-log and `stateHash()`, every time — see `test-world.js`.
+
+```js
+const { World, makeShipCell } = require('@superinstance/cargo-line-tycoon-substrate/src/world.js');
+
+const world = new World({ seed: 'my-run-1' });
+world.entities.put('ship_1', makeShipCell({
+  id: 'ship_1', companyId: 'co_1', classId: 'feeder',
+  capacityTeu: 800, speedKn: 14, positionPortId: 'los_angeles',
+}));
+world.tick((w) => {
+  const drift = w.rng.float(-0.03, 0.03); // deterministic, seed-derived
+  w.book({ type: 'market_drift', port_id: 'seattle', drift });
+});
+console.log(world.stateHash());
+```
+
+Run `npm test` (or `node test.js && node test-world.js`) to check both the
+original canary/cell/signal-chain/locale suite and the Phase 0 replay-
+determinism suite are green.

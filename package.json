@@ -1,10 +1,13 @@
 {
   "name": "@superinstance/cargo-line-tycoon-substrate",
-  "version": "0.1.0",
-  "description": "Polyformal Quilt substrate for cargo-line-tycoon. FNV-1a 64-bit canary + signal-chain + cell algebra. Same hashes across TS/Rust/C/Python.",
+  "version": "0.2.0",
+  "description": "Polyformal Quilt substrate for cargo-line-tycoon. FNV-1a 64-bit canary + signal-chain + cell algebra + Phase 0 world-model (booked tick loop, seeded RNG, game cells). Same hashes across TS/Rust/C/Python.",
   "main": "src/index.js",
   "types": "src/index.d.ts",
-  "keywords": ["cargo-line-tycoon", "substrate", "quilt", "signal-chain", "polyformalism", "fnv1a"],
+  "keywords": ["cargo-line-tycoon", "substrate", "quilt", "signal-chain", "polyformalism", "fnv1a", "world-model"],
   "author": "SuperInstance",
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "test": "node test.js && node test-world.js"
+  }
 }
