@@ -16,10 +16,18 @@ function fnv1a64(str) {
   const bytes = Buffer.from(String(str), 'utf-8');
   let h = FNV_OFFSET;
   for (let i = 0; i < bytes.length; i++) {
-    h = BigInt(h ^ BigInt(bytes[i]));
-    h = BigInt(h * FNV_PRIME);
+    // Mask to 64 bits after every step (not just at the end). Without this,
+    // the intermediate BigInt grows without bound across the loop — same
+    // final answer once you mask at the end (mod 2^64 commutes with XOR and
+    // multiplication), but O(n^2) instead of O(n): a 32KB input took ~2.4s
+    // unmasked-per-step vs a few ms masked-per-step. Found while hashing a
+    // Phase 0 witness-log (World.stateHash()), which is exactly the kind of
+    // longer input the original single-shot canary/Cell-address usage never
+    // exercised. Output is byte-identical for every existing caller.
+    h = (h ^ BigInt(bytes[i])) & MASK_64;
+    h = (h * FNV_PRIME) & MASK_64;
   }
-  return BigInt(h & MASK_64);
+  return h;
 }
 
 function verifyCanary(input = FLEET_CANARY_INPUT) {
